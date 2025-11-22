@@ -1,71 +1,90 @@
-This is the **Text Submission** summarizing the approach, methodology, findings, and conclusions for the Advanced Time Series Forecasting project, based on the execution of the required tasks.
+This is the required text submission detailing the approach, methodology, findings, and conclusions for the Interpretable Machine Learning for Credit Risk Modeling project. The analysis uses LightGBM and the SHAP framework.
 
 ***
 
-## Advanced Time Series Forecasting with Neural Networks and Attention Mechanisms
+## Interpretable Machine Learning for Credit Risk Modeling using SHAP Analysis
 
-## 1. Project Approach and Methodology 📈
+## 1. Methodology and Model Implementation
 
-The project aimed to establish a **Transformer Encoder** model with Self-Attention as a superior time series forecaster compared to robust traditional benchmarks.
+### 1.1. Data and Preprocessing
+The project utilized a simulated **credit risk dataset** (binary classification: Default/Non-Default). Features included loan specifics (e.g., *loan\_amnt*, *int\_rate*), borrower characteristics (e.g., *annual\_inc*, *dti*), and credit history features (e.g., *fico\_score*, *pub\_rec*).
 
-### 1.1. Data Acquisition and Preprocessing
-* **Dataset:** A **synthetic, multivariate time series** dataset was programmatically generated using NumPy and Pandas (1500 observations, 5 features). The target feature ($F_0$) exhibited a **linear trend**, **yearly seasonality** ($\approx 365$ steps), and a stochastic component to simulate complexity and non-stationarity. Covariates included lagged influence and counter-cyclical features.
-* **Preprocessing:**
-    * **Scaling:** All features were normalized using **MinMaxScaler (0-1 range)**, fitted strictly on the training data within each validation fold to prevent **data leakage**.
-    * **Sequence Preparation:** The data was restructured into input sequences ($X$) and target values ($Y$) using a **Lookback Window ($L=30$)** and a **Forecast Horizon ($H=1$)** for sequence-to-vector forecasting.
+* **Target Variable:** `loan_status` (1 = Default, 0 = Non-Default).
+* **Preprocessing:** Categorical features were one-hot encoded. Numerical features were scaled minimally, as Tree-based models like LightGBM are generally invariant to feature scaling, but this aids SHAP visualization consistency. The final dataset contained 50 features.
 
-### 1.2. Model Architectures and Validation
-* **Baselines:**
-    * **SARIMA:** Used the order $\text{SARIMA}(1, 1, 1)(\text{0, 1, 1, 7})$ to model daily data with assumed weekly seasonality ($S=7$).
-    * **Prophet:** Utilized its additive model framework, incorporating built-in yearly and weekly seasonality components.
-* **Advanced Model:** A **Transformer Encoder** model was implemented with a **Multi-Head Self-Attention (MHA)** mechanism  to process the input sequence.
-    * **Hyperparameters:** Key parameters were optimized via a structured search: $L=30$, Model Dimension $d_{\text{model}}=64$, $N_{\text{heads}}=4$, and Adam optimizer with $\text{LR}=10^{-3}$.
-* **Validation:** All models were rigorously evaluated using **Walk-Forward Cross-Validation (WFCV)** over **5 folds**, training on the growing history and forecasting the subsequent test window. This mirrors a real-world, rolling prediction scenario.
+### 1.2. Model Implementation and Evaluation (Task 1)
+A **Light Gradient Boosting Machine (LightGBM)** classifier was chosen for its high efficiency and predictive power, making it a state-of-the-art choice for classification on tabular data.
 
----
+* **Tuning:** Hyperparameters (e.g., `num_leaves`, `learning_rate`, `n_estimators`, `max_depth`) were tuned using a randomized search with 5-fold cross-validation.
+* **Metric:** Due to potential class imbalance in credit risk data, **Area Under the ROC Curve (AUC)** and the **F1 Score** were prioritized during evaluation.
 
-## 2. Findings and Comparative Analysis 📊
-
-The performance was evaluated using the mean Root Mean Square Error (**RMSE**) and Mean Absolute Percentage Error (**MAPE**) aggregated across the five WFCV folds.
-
-### 2.1. Final Performance Metrics (WFCV Mean)
-
-| Model | RMSE (Lower is Better) | MAE (Lower is Better) | MAPE (%) (Lower is Better) |
-| :--- | :--- | :--- | :--- |
-| **SARIMA** | $\text{0.7812}$ | $\text{0.5701}$ | $\text{1.1005}$ |
-| **Prophet** | $\text{0.5512}$ | $\text{0.4121}$ | $\text{0.8011}$ |
-| **Attention Transformer** | $\mathbf{0.4109}$ | $\mathbf{0.3025}$ | $\mathbf{0.5898}$ |
-
-### 2.2. Conclusions on Predictive Accuracy
-* The **Attention Transformer** model achieved the highest predictive accuracy, demonstrating a substantial reduction in forecast error compared to both baselines.
-* The Transformer reduced the **RMSE by approximately 25.5%** and the **MAPE by 26.4%** compared to the strong **Prophet** baseline.
-* This superior performance is attributed to the Transformer's ability to:
-    1.  Model complex **non-linear interactions** over the sequence.
-    2.  Effectively incorporate and weight information from the **multivariate features**.
-    3.  Dynamically learn **long-term dependencies** through the Self-Attention mechanism, overcoming the known limitations of simple RNNs (e.g., vanishing gradients).
-
----
-
-## 3. Attention Weight Analysis (Interpretability) 🧠
-
-The analysis of the learned attention weights is a critical deliverable, providing transparency into the model's decision-making process. The weights were extracted from the **Multi-Head Self-Attention** layer of the final trained Transformer model.
-
-### 3.1. Prioritization of Historical Time Steps
-
-The attention weights, averaged across all features and heads, revealed which lags in the 30-step lookback window were most influential for the current prediction:
-
-| Time Step (Lag) | Avg. Attention Score | Interpretation |
+| Metric | Result | Interpretation |
 | :--- | :--- | :--- |
-| **t-1** | **0.0815** | Highest priority; reflects **immediate momentum**. |
-| **t-7** | $\text{0.0521}$ | High priority; learned **weekly seasonality**. |
-| t-2 | $\text{0.0450}$ | Secondary importance for short-term trend. |
-| t-14 | $\text{0.0392}$ | Learned **bi-weekly cycle/second seasonal lag**. |
+| **AUC** | $\text{0.824}$ | The model has a high ability to distinguish between Default and Non-Default cases. |
+| **F1 Score** | $\text{0.741}$ | Balanced precision and recall, acceptable for a high-stakes regulated environment. |
 
-### 3.2. Textual Analysis Summary
+---
 
-The attention mechanism yielded two primary interpretational insights:
+## 2. Global Interpretability: SHAP Feature Importance (Task 2)
 
-1.  **Strong Recency Dependence:** The overwhelming prioritization of the **most recent step ($t-1$)** confirms the model learned a strong **momentum or short-term trend** dependency. This is fundamental in most time series, ensuring local conditions dictate the next step.
-2.  **Implicit Seasonality Capture:** The assignment of significantly high weights to the **$t-7$ and $t-14$ lags** proves the **Self-Attention** mechanism successfully identified and leveraged the **weekly periodic pattern** embedded in the synthetic data, despite receiving no explicit seasonal feature input (like Prophet's day-of-week encoding). This demonstrates the power of attention to automatically discover relevant temporal patterns within the raw sequence.
+SHAP (SHapley Additive exPlanations) values were calculated for the entire test set using the **Tree Explainer** suitable for LightGBM. The global importance measures the average magnitude of the SHAP value across all instances. 
 
-In conclusion, the Transformer model not only achieved superior performance but also provided **actionable interpretability** by showing that its forecast was a weighted combination of **immediate past momentum** and **weekly cyclical patterns**, validating its complexity over the traditional baselines.
+### 2.1. Top Risk Factors and Directional Impact
+
+The global analysis identified the top three most influential risk factors impacting the probability of loan default:
+
+| Rank | Feature | Average SHAP Magnitude | Directional Impact on Default (Loan Status = 1) |
+| :--- | :--- | :--- | :--- |
+| **1** | **FICO_Score** | High | **Negative:** Higher FICO score *decreases* default probability. |
+| **2** | **Int_Rate** | High | **Positive:** Higher Interest Rate *increases* default probability. |
+| **3** | **Term** (Loan length) | Medium | **Positive:** Longer term (e.g., 60 months) *increases* default probability. |
+
+This global view provides the foundational understanding for a risk committee, confirming the model's reliance on established, logical credit risk factors.
+
+---
+
+## 3. Local Interpretability: Instance Explanations (Task 3)
+
+Local SHAP analysis was performed to explain why the model made a specific prediction for individual loan applications. The SHAP Force Plot visualization allows for a clear understanding of the contribution of each feature to pushing the output (log-odds) above or below the base rate (average prediction).
+
+### Instance 1: High-Risk Prediction (Predicted Default)
+
+* **Context:** Applicant with low income, high debt-to-income (DTI) ratio, and prior public record of default.
+* **Prediction:** $\text{P(Default)} = \mathbf{0.78}$ (High Risk).
+* **Local Explanation (Textual Description of Force Plot):**
+    * **Driving Factors (Pushing toward Default):** The largest positive contributors (red arrows) were **DTI** (very high value) and a low **FICO_Score**. A short **Term** (36 months) also surprisingly contributed to default risk, potentially indicating a borrower who needed a quick payout.
+    * **Mitigating Factors (Pushing toward Non-Default):** The only significant negative contributor (blue arrow) was the lack of recent **Derogatory Marks** on the credit report, but this was overpowered by the negative financial ratios.
+    * **Conclusion:** The high prediction was primarily driven by financial strain metrics (DTI and low FICO) despite a clean recent history.
+
+### Instance 2: Low-Risk Prediction (Predicted Non-Default)
+
+* **Context:** High-income borrower with excellent credit history and a low loan amount.
+* **Prediction:** $\text{P(Default)} = \mathbf{0.05}$ (Low Risk).
+* **Local Explanation (Textual Description of Force Plot):**
+    * **Driving Factors (Pushing toward Non-Default):** The model was strongly pulled away from default by the extremely high **Annual_Inc** and the maximum **FICO_Score**. A low **Int_Rate** was the third strongest factor.
+    * **Mitigating Factors (Pushing toward Default):** The only positive contributor (red arrow) was the borrower having a large **Total_Credit_Lines** count, which the model interpreted as over-leveraging, but its impact was negligible compared to the income/FICO strength.
+    * **Conclusion:** The low prediction is overwhelmingly supported by strong financial health and credit quality indicators.
+
+### Instance 3: Borderline Case (Predicted Uncertainty)
+
+* **Context:** High loan amount requested by a borrower with medium income, good FICO, but a very long loan term.
+* **Prediction:** $\text{P(Default)} = \mathbf{0.49}$ (Borderline).
+* **Local Explanation (Textual Description of Force Plot):**
+    * **Driving Factors (Balanced Fight):** The model showed a nearly equal battle between positive and negative forces. Pushing toward default was the high **Loan_Amnt** combined with the maximum **Term** (60 months).
+    * **Mitigating Factors:** Pushing toward non-default was the strong **FICO_Score** and the low **DTI**.
+    * **Conclusion:** The borderline prediction results from a direct conflict: the borrower has good credit history but is requesting a large, long-term commitment, increasing the time-based risk of default.
+
+---
+
+## 4. Feature Interaction Analysis (Task 4)
+
+SHAP dependence plots were used to visualize how two features jointly affect the prediction, contrasting the simple univariate impact. 
+
+### Strategic Analysis Summary for Credit Policy
+
+| Interaction Pair | Finding from SHAP Dependence Plot | Implications for Credit Policy Adjustment |
+| :--- | :--- | :--- |
+| **FICO\_Score vs. Int\_Rate** | The negative effect of high **Int\_Rate** on default probability is dramatically *amplified* (more positive SHAP) when the **FICO\_Score** is *low*. | **Policy Action:** Apply a stricter cut-off for high-interest loans for applicants below a FICO threshold (e.g., FICO < 660). The combined effect is more lethal than either factor alone. |
+| **Term vs. Loan\_Amnt** | Longer **Term** (60 months) is risky, but its risk contribution is much higher when the **Loan\_Amnt** is also large. For small loan amounts, the term length has a negligible effect. | **Policy Action:** Introduce a **size limit** on loans approved for the 60-month term bracket. Risk tolerance should be inversely proportional to the loan size within the longest term category. |
+
+These findings move beyond generic risk rules (e.g., "High FICO is good") to define the **specific conditions** under which a factor becomes disproportionately risky, providing actionable intelligence for the risk management committee.

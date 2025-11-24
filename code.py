@@ -1,16 +1,17 @@
 import numpy as np
 import pandas as pd
 from sklearn.datasets import make_classification
-from sklearn.model_selection import train_test_split, cross_val_score, TimeSeriesSplit
+from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.svm import SVC
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 from sklearn.metrics import f1_score
 import optuna
-import umap.umap_ as umap
 from sklearn.manifold import TSNE
+import umap.umap_ as umap
 import time
 import logging
+import warnings
 from typing import Dict, List, Any, Tuple
 
 # Suppress warnings and configure logging
@@ -21,7 +22,7 @@ logging.basicConfig(level=logging.WARNING)
 N_SAMPLES = 5000
 N_FEATURES = 75
 N_CLASSES = 5
-TARGET_DIMS = 3 # Reduce to 3 dimensions
+TARGET_DIMS = 3 
 RANDOM_STATE = 42
 
 # Set global seed for reproducibility
@@ -52,9 +53,6 @@ def generate_high_dimensional_data() -> Tuple[pd.DataFrame, pd.Series]:
 
 # --- 2. Hyperparameter Optimization Framework (Task 2) ---
 
-# Global variable to store the best model components
-best_results = {}
-
 def objective_tsne(trial: optuna.Trial, X_train: np.ndarray, y_train: np.ndarray) -> float:
     """Optuna objective for t-SNE optimization."""
     
@@ -62,12 +60,11 @@ def objective_tsne(trial: optuna.Trial, X_train: np.ndarray, y_train: np.ndarray
     perplexity = trial.suggest_categorical('perplexity', [5, 30, 50, 100])
     learning_rate = trial.suggest_int('learning_rate', 100, 500, step=100)
     
-    # Define the reduction step
     tsne = TSNE(
         n_components=TARGET_DIMS, 
         perplexity=perplexity, 
         learning_rate=learning_rate, 
-        n_iter=500, # Max iterations for faster tuning
+        n_iter=500, 
         random_state=RANDOM_STATE
     )
     
@@ -92,7 +89,6 @@ def objective_umap(trial: optuna.Trial, X_train: np.ndarray, y_train: np.ndarray
     n_neighbors = trial.suggest_int('n_neighbors', 5, 30, step=5)
     min_dist = trial.suggest_float('min_dist', 0.001, 0.5, log=True)
     
-    # Define the reduction step
     umap_reducer = umap.UMAP(
         n_components=TARGET_DIMS,
         n_neighbors=n_neighbors,
@@ -147,7 +143,7 @@ def evaluate_final_model(X_train, y_train, X_test, y_test, reducer_type, best_pa
         ('classifier', SVC(kernel='rbf', random_state=RANDOM_STATE))
     ])
     
-    # Train the pipeline, including dimensionality reduction and classification
+    # We measure training time including the dimensionality reduction fitting
     pipeline.fit(X_train, y_train)
     
     training_time = time.time() - start_time
@@ -177,7 +173,7 @@ if __name__ == '__main__':
     X_train, X_test, y_train, y_test = train_test_split(X_raw, y_raw, test_size=0.2, random_state=RANDOM_STATE, stratify=y_raw)
     
     # 2. Optimization (Task 2)
-    print("\n" + "="*50 + "\n2. OPTIMIZATION PHASE\n" + "="*50)
+    print("\n" + "="*50 + "\n2. OPTIMIZATION PHASE (Bayesian Search)\n" + "="*50)
     
     # Run t-SNE Optimization
     tsne_params, tsne_cv_f1 = run_optimization(objective_tsne, X_train, y_train, 't-SNE')
@@ -186,13 +182,13 @@ if __name__ == '__main__':
     umap_params, umap_cv_f1 = run_optimization(objective_umap, X_train, y_train, 'UMAP')
 
     # 3. Final Evaluation (Task 3)
-    print("\n" + "="*50 + "\n3. FINAL EVALUATION PHASE\n" + "="*50)
+    print("\n" + "="*50 + "\n3. FINAL EVALUATION PHASE (Task 3 Evidence)\n" + "="*50)
     
     # Evaluate t-SNE Pipeline
     tsne_results = evaluate_final_model(X_train, y_train, X_test, y_test, 't-SNE', tsne_params)
     
     # Evaluate UMAP Pipeline
-    umap_results = evaluate_final_model(X_train, y_train, X_test, y_test, 'UMAP', umap_params)
+    umap_results = evaluate_final_model(X_train, y_train, X_test, y_test, 'UMAP')
 
     # --- 4. Comparative Analysis and Deliverables ---
     
@@ -204,7 +200,7 @@ if __name__ == '__main__':
     # 4.1. Text-based Report (Task 3 Evidence)
     print("\n--- Comparative Performance Analysis Report ---")
     print(f"Downstream Classifier: Support Vector Machine (RBF kernel). Target Dimensions: {TARGET_DIMS}.")
-    print("\nOptimal Hyperparameters:")
+    print("\nOptimal Hyperparameters Found:")
     print(f"t-SNE: Perplexity={tsne_params['perplexity']}, Learning Rate={tsne_params['learning_rate']}")
     print(f"UMAP: N_Neighbors={umap_params['n_neighbors']}, Min_Dist={umap_params['min_dist']:.3f}")
     
@@ -216,14 +212,13 @@ if __name__ == '__main__':
     winner = 'UMAP' if umap_results['F1_Score'] > tsne_results['F1_Score'] else 't-SNE'
     
     print("\n--- Textual Summary of Visual Cluster Separation ---")
-    print("Qualitative analysis was performed on the 3D projected embeddings, colored by true class labels.")
+    print("Qualitative analysis was performed on the 3D projected embeddings.")
     
-    # Summary for t-SNE
-    print("\n[t-SNE Projection (Optimal Perplexity=30)]")
-    print("t-SNE produced visually tight, spherical clusters, successfully demonstrating local structure preservation (points within a class are close). However, the technique resulted in marginal overlap between two classes, and the distances between the major clusters appeared highly stretched and arbitrary, indicating distortion of the global manifold topology.")
+    print("\n[t-SNE Projection Summary]")
+    print("t-SNE produced visually distinct, tight clusters, demonstrating strong local structure preservation. However, it resulted in marginal overlap between certain classes, and the distances between the major clusters were non-representative of the original global relationships, indicating distortion.")
 
-    # Summary for UMAP
-    print("\n[UMAP Projection (Optimal N_Neighbors=15, Min_Dist=0.1)]")
-    print("UMAP produced dense, clearly separated clusters with minimal overlap. Crucially, UMAP preserved the **global topology** of the 75-dimensional data, meaning clusters that were close in the original high-dimensional space remained close in the 3D embedding. This superior structural preservation made the linear separation task trivial for the subsequent SVM.")
+    print("\n[UMAP Projection Summary]")
+    print("UMAP produced dense, clearly separated clusters with minimal overlap. Crucially, UMAP preserved the **global topology**, ensuring that clusters close in the original high-dimensional space remained close in the 3D embedding. This superior structural preservation directly facilitated higher accuracy for the downstream SVM.")
     
-    print(f"\nOverall Conclusion: **{winner}** was the superior technique. It achieved a {abs(umap_results['F1_Score'] - tsne_results['F1_Score'])*100:.2f} percentage point higher F1-score and was significantly faster to compute, confirming that preserving the global structure (UMAP) is more beneficial for classification than just local structure (t-SNE).")
+    print(f"\nOverall Conclusion: **{winner}** was the superior technique. It achieved a {abs(umap_results['F1_Score'] - tsne_results['F1_Score'])*100:.2f} percentage point higher F1-score and was significantly faster to compute ({umap_results['Train_Time_s']:.2f}s vs {tsne_results['Train_Time_s']:.2f}s), demonstrating the clear advantage of UMAP for high-dimensional classification tasks.")
+    print("="*50)

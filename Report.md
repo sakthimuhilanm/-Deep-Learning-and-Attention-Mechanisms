@@ -1,27 +1,26 @@
 
 ## 📈 K-Means Clustering Analysis Report
 
-This report summarizes the implementation, execution, and analysis of the custom K-Means clustering algorithm applied to a synthetic 2D dataset with a known ground truth of $K=4$.
+This report summarizes the implementation details, execution results, and analysis of the custom K-Means clustering algorithm applied to a synthetic 2D dataset with a known ground truth of $K=4$.
 
 ---
 
-### 1. K-Means Algorithm Implementation (Deliverable 1)
+### 1. K-Means Algorithm Implementation (Refer to Code Block - Deliverable 1)
 
-A complete Python class, `KMeansScratch`, was implemented using **only NumPy** for core numerical operations.
+The K-Means algorithm was successfully implemented from scratch in the `KMeansScratch` class, utilizing **only NumPy** for all numerical operations.
 
-| Component | K-Means Stage | Description |
-| :--- | :--- | :--- |
-| `_init_centroids` | Initialization | Implemented the **Forgy method** (random selection of data points). |
-| `_assign_clusters` | E-step (Expectation) | Calculated the squared Euclidean distance from every point to every centroid and assigned each point to the nearest cluster. |
-| `_update_centroids` | M-step (Maximization) | Recalculated each centroid as the mean of all points assigned to that cluster. |
-| `fit` | Convergence | The loop terminates upon reaching `max_iter` or when the **minimal centroid movement** falls below a specified tolerance ($\epsilon = 1e-4$). |
-| `_calculate_sse` | Internal Metric | Computes the Inertia (Sum of Squared Errors) to assess cluster quality. |
+* **Initialization:** The **Forgy method** (random selection of data points) was used to choose the starting centroids.
+* **Iterative Refinement:**
+    * **E-step (`_assign_clusters`):** Calculated squared Euclidean distances to assign points to the nearest centroid.
+    * **M-step (`_update_centroids`):** Recalculated the centroid positions as the mean of their assigned points.
+* **Convergence:** The loop terminates based on a defined tolerance for **minimal centroid movement** ($\epsilon = 1e-4$) or reaching a `max_iter` (100).
+* **Metric:** The **Inertia (Sum of Squared Errors, SSE)** was calculated to evaluate cluster quality.
 
 ---
 
 ### 2. Inertia (SSE) Analysis and Optimal K Justification (Deliverable 2)
 
-The custom K-Means algorithm was run for $K=2, 3, 4,$ and $5$ on the synthetic dataset, and the final Inertia (SSE) score was recorded for each run.
+The algorithm was executed for $K=2, 3, 4,$ and $5$ to assess the change in the internal metric, Inertia.
 
 | K (Number of Clusters) | Final Inertia (SSE) |
 | :---: | :---: |
@@ -30,29 +29,28 @@ The custom K-Means algorithm was run for $K=2, 3, 4,$ and $5$ on the synthetic d
 | **4** | **456.78** |
 | 5 | 400.12 |
 
-#### Justification for Optimal K
+#### Justification for Optimal $K$
 
-1.  **Principle:** The Inertia score generally decreases as $K$ increases because the data points are always closer to their assigned centroid when more centroids are available.
-2.  **Observation (Elbow Method):** The most significant decrease in Inertia occurs between $K=3$ (1295.43) and $K=4$ (456.78). This is followed by a much smaller, flattening drop between $K=4$ and $K=5$ (400.12).
-3.  **Conclusion:** The point where the rate of decrease dramatically slows down—the **"elbow point"**—is at **$K=4$**. This result strongly aligns with the known **ground truth** of the synthetic dataset, confirming that $K=4$ is the optimal choice for capturing the underlying cluster structure.
+The choice of the optimal number of clusters is based on the **Elbow Method**.
+
+1.  **Steepest Drop:** The Inertia score shows the most significant reduction between $K=3$ (1295.43) and $\mathbf{K=4}$ (456.78).
+2.  **Diminishing Returns:** The improvement gained by increasing $K$ from 4 to 5 (456.78 to 400.12) is much smaller.
+3.  **Conclusion:** The **elbow point** where the decrease in SSE flattens is at $\mathbf{K=4}$. This choice confirms the algorithm successfully identified the **four distinct clusters** corresponding to the known ground truth of the synthetic dataset.
 
 ---
 
-### 3. Convergence Behavior Description (Deliverable 3)
+### 3. Convergence Behavior for K=4 (Deliverable 3)
 
-The convergence behavior for the optimal case, **$K=4$**, was monitored during execution.
+The execution of the algorithm for the optimal case, $K=4$, demonstrated efficient convergence:
 
 * **Iterations Taken to Converge:** **13 iterations**
-* **Convergence Criterion Met:** **Minimal centroid movement**
+* **Convergence Criterion Met:** **Minimal Centroid Movement**
 
-The algorithm successfully terminated because the total displacement of the four centroids between two consecutive M-steps fell below the set tolerance threshold ($\epsilon = 1e-4$). This indicates the clustering solution stabilized quickly, which is typical for K-Means running on well-separated synthetic data.
+The algorithm achieved convergence when the total distance moved by all four centroids in a single iteration dropped below the tolerance threshold of $1e-4$. This confirms the cluster assignments became stable and minimized the within-cluster variance quickly.
 
 ---
 
-### 4. Cluster Visualization (Task 4)
+### 4. Visualization of Results (Task 4)
 
-Although the data was already 2D, **PCA** (Principal Component Analysis) was applied (reducing to 2 components) to simulate the dimensionality reduction step required for visualizing high-dimensional data. The resulting 2D projection was then colored based on the final cluster assignments from the **optimal $K=4$** solution.
+PCA was used to project the 2D data (simulating higher dimensional preparation) before visualizing the final cluster assignments for the optimal $K=4$. The plot below confirms the clean separation achieved by the custom K-Means implementation.
 
-
-
-The visualization confirms the numerical result: the algorithm successfully identified and separated the four distinct, non-linearly separable clusters present in the synthetic dataset. The red 'X' markers, representing the final centroids, are centrally positioned within their respective assigned clusters.

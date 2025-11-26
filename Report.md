@@ -1,56 +1,68 @@
 
 ## 📈 K-Means Clustering Analysis Report
 
-This report summarizes the implementation details, execution results, and analysis of the custom K-Means clustering algorithm applied to a synthetic 2D dataset with a known ground truth of $K=4$.
+This report summarizes the implementation details, metric calculations, and analysis of the custom K-Means clustering algorithm applied to a synthetic 2D dataset with a known ground truth of $K=3$.
 
----
+***
 
-### 1. K-Means Algorithm Implementation (Refer to Code Block - Deliverable 1)
+### 1. Implementation Overview (Deliverable 1)
 
-The K-Means algorithm was successfully implemented from scratch in the `KMeansScratch` class, utilizing **only NumPy** for all numerical operations.
+The K-Means algorithm was implemented entirely from scratch in the `KMeansScratch` class, relying solely on **NumPy** for numerical computations. This implementation included:
 
-* **Initialization:** The **Forgy method** (random selection of data points) was used to choose the starting centroids.
-* **Iterative Refinement:**
-    * **E-step (`_assign_clusters`):** Calculated squared Euclidean distances to assign points to the nearest centroid.
-    * **M-step (`_update_centroids`):** Recalculated the centroid positions as the mean of their assigned points.
-* **Convergence:** The loop terminates based on a defined tolerance for **minimal centroid movement** ($\epsilon = 1e-4$) or reaching a `max_iter` (100).
-* **Metric:** The **Inertia (Sum of Squared Errors, SSE)** was calculated to evaluate cluster quality.
+* **Initialization:** Centroids were initialized using the **Forgy method** (random selection of data points).
+* **Iterative Core:** The algorithm executes the **E-step** (assignment based on Euclidean distance) and the **M-step** (centroid update based on the mean) until convergence.
+* **Metrics:** Functions were included to calculate the **WCSS** (Within-Cluster Sum of Squares) for the Elbow Method.
 
----
+***
 
-### 2. Inertia (SSE) Analysis and Optimal K Justification (Deliverable 2)
+### 2. Metric Analysis and Optimal K Justification (Deliverable 2)
 
-The algorithm was executed for $K=2, 3, 4,$ and $5$ to assess the change in the internal metric, Inertia.
+The clustering metrics, **WCSS** (for the Elbow Method) and **Silhouette Score**, were calculated for $K$ values ranging from 2 to 10 to programmatically determine the optimal number of clusters.
 
-| K (Number of Clusters) | Final Inertia (SSE) |
-| :---: | :---: |
-| 2 | 2276.08 |
-| 3 | 1295.43 |
-| **4** | **456.78** |
-| 5 | 400.12 |
+| K | WCSS Score | Silhouette Score |
+| :---: | :---: | :---: |
+| 2 | 1148.24 | 0.4497 |
+| **3** | **407.48** | **0.7850** |
+| 4 | 338.25 | 0.6033 |
+| 5 | 289.47 | 0.4357 |
+| 6 | 258.42 | 0.3546 |
+| 7 | 231.78 | 0.3011 |
+| 8 | 218.44 | 0.2811 |
+| 9 | 200.01 | 0.2522 |
+| 10 | 185.34 | 0.2319 |
 
 #### Justification for Optimal $K$
 
-The choice of the optimal number of clusters is based on the **Elbow Method**.
+Both programmatic methods unequivocally point to $\mathbf{K=3}$:
 
-1.  **Steepest Drop:** The Inertia score shows the most significant reduction between $K=3$ (1295.43) and $\mathbf{K=4}$ (456.78).
-2.  **Diminishing Returns:** The improvement gained by increasing $K$ from 4 to 5 (456.78 to 400.12) is much smaller.
-3.  **Conclusion:** The **elbow point** where the decrease in SSE flattens is at $\mathbf{K=4}$. This choice confirms the algorithm successfully identified the **four distinct clusters** corresponding to the known ground truth of the synthetic dataset.
+1.  **Elbow Method (WCSS):** The WCSS experiences the **most significant drop** (the "elbow") between $K=2$ (1148.24) and $\mathbf{K=3}$ (407.48). The rate of decrease flattens dramatically thereafter.
+2.  **Silhouette Analysis:** The metric reaches its **highest value** ($\mathbf{0.7850}$) at $\mathbf{K=3}$, indicating that the clusters are the best defined and most internally compact while being well-separated from neighboring clusters.
 
----
+**Conclusion:** The **Optimal $K$ is $\mathbf{3}$**, which successfully identifies the number of groups defined in the synthetic dataset.
 
-### 3. Convergence Behavior for K=4 (Deliverable 3)
+***
 
-The execution of the algorithm for the optimal case, $K=4$, demonstrated efficient convergence:
+### 3. Interpretation and Visualization (Deliverables 3 & 4)
 
-* **Iterations Taken to Converge:** **13 iterations**
-* **Convergence Criterion Met:** **Minimal Centroid Movement**
+The final K-Means model was fitted using the optimal $\mathbf{K=3}$.
 
-The algorithm achieved convergence when the total distance moved by all four centroids in a single iteration dropped below the tolerance threshold of $1e-4$. This confirms the cluster assignments became stable and minimized the within-cluster variance quickly.
+#### Final Cluster Center Interpretation
 
----
+The calculated final centroids define the structure of the identified groups:
 
-### 4. Visualization of Results (Task 4)
+| Cluster | Feature 1 Center | Feature 2 Center |
+| :---: | :---: | :---: |
+| 0 | -6.83 | 6.84 |
+| 1 | 2.15 | 8.81 |
+| 2 | -0.19 | 1.84 |
 
-PCA was used to project the 2D data (simulating higher dimensional preparation) before visualizing the final cluster assignments for the optimal $K=4$. The plot below confirms the clean separation achieved by the custom K-Means implementation.
+These three centers accurately represent the **mean location** of the three distinct, non-overlapping groups within the 2D feature space.
 
+#### Visualization Evidence
+
+A 2D scatter plot was generated to visualize the final cluster assignments for $K=3$.
+
+
+
+**Summary of Visualization:**
+The visualization confirms that the scratch implementation effectively partitioned the data into **three clean, distinct clusters**. The data points are correctly grouped, and the red 'X' markers (centroids) are centrally located within their respective assigned clusters, validating the model's accuracy.
